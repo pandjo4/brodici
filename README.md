@@ -1,33 +1,26 @@
-# DEPTH CHARGE — Battleship Multiplayer
+# DEPTH CHARGE — fixed Render deployment
 
-A two-player, real-time Battleship game with private lobby codes, 10×10 boards, energy and tactical abilities.
+## Important fix
+The original `public/game.js` contained the literal characters `\n` in the middle of a JavaScript statement. This is a syntax error that prevents the entire client game script from loading. As a result, the connection label stayed on `CONNECTING` and the lobby buttons did not work. That syntax error has been fixed.
 
-## Deploy (GitHub + Render)
-1. Create a new GitHub repository.
-2. Upload the contents of this ZIP (the `package.json`, `server.js`, `render.yaml`, and `public` folder must be at the repository root).
-3. In Render, choose **New + → Blueprint** and select the repository. Render reads `render.yaml`.
-   - Alternatively create a **Web Service** from the repository, runtime **Node**, build command `npm install`, start command `npm start`.
-4. Wait for deploy. Open the Render URL. Both players use the same URL, but each opens it in their own browser/device.
-5. Player 1 clicks **Create lobby** and shares the 6-character code. Player 2 enters the code and clicks **Join lobby**.
+## Deploy to Render
+1. Extract this ZIP.
+2. Upload the **contents of this folder** to the root of your GitHub repository. `package.json`, `server.js`, `render.yaml`, and `public/` must be directly in the repository root, not inside an extra nested folder.
+3. In Render, make sure the service is connected to that repository and uses:
+   - Build command: `npm install`
+   - Start command: `npm start`
+   - Health check path: `/health`
+4. Trigger **Manual Deploy → Deploy latest commit**.
+5. Open the Render URL and confirm `/health` displays `{"ok":true}`.
+6. Player 1 creates a lobby and shares the six-character code; Player 2 opens the same Render URL and joins with that code.
 
-## Rules
-- Board: 10×10.
-- Fleet: one 4-cell ship and three 3-cell ships.
-- Placement: 60-second timer; ships must be straight and cannot overlap.
-- Turns: 25 seconds per turn. One normal shot per turn.
-- Energy: first player starts with 1 energy; every new turn grants +1 energy (maximum 10).
-- Radar pulse: 2 energy; choose a 3×3 area, reveals the number of ship cells in it, not their exact locations.
-- Row barrage: 5 energy; fires at all 10 cells in a row, only newly-targeted cells count.
-- Column barrage: 5 energy; fires at all 10 cells in a column, only newly-targeted cells count.
-- Win by sinking all four enemy ships.
-
-## Local testing
-Requires Node.js 18+.
+## Local test
+Requires Node.js 18 or newer:
 ```bash
 npm install
 npm start
 ```
-Open http://localhost:3000 in two tabs. Socket.IO keeps both tabs in sync.
+Then open `http://localhost:3000` in two browser tabs.
 
 ## Notes
-- This version keeps active rooms in server memory. If the Render free service sleeps or restarts, active matches are lost. This is fine for casual games; persistent rooms would need a database.
+Rooms are held in server memory, so active matches are lost if Render restarts or sleeps. The free service may take a little while to wake up after inactivity.

@@ -200,7 +200,8 @@
         if(!cells){toast("That ship does not fit there. Try another starting cell.");beep(170,.06,"square");return;}
         placedShips.push({defIndex:selectedShip,cells});
         selectedShip=shipDefs.findIndex((_,i)=>!placedShips.some(s=>s.defIndex===i));
-        if(selectedShip<0)selectedShip=shipDefs.findIndex((_,i)=>!placedShips.some(s=>s.defIndex===i));\n        if(selectedShip<0)selectedShip=0;
+        if(selectedShip<0)selectedShip=shipDefs.findIndex((_,i)=>!placedShips.some(s=>s.defIndex===i));
+        if(selectedShip<0)selectedShip=0;
         hoverCell=null;beep(470,.07);renderPlacement();
       });
       board.appendChild(cell);
