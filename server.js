@@ -14,7 +14,7 @@ app.get("/health", (_, res) => res.json({ ok: true }));
 
 const rooms = new Map();
 const BOARD = 10;
-const SHIPS = [4, 3, 3, 3];
+const SHIPS = [4, 3, 3, 3, 2];
 const PLACE_SECONDS = 60;
 const TURN_SECONDS = 25;
 const MAX_ENERGY = 10;
@@ -228,7 +228,7 @@ io.on("connection", socket => {
   socket.on("placeFleet", ({ ships } = {}) => {
     const room = getRoom(socket), p = room && room.players[socket.id];
     if (!room || !p || room.phase !== "placing" || p.ready) return;
-    if (!Array.isArray(ships) || ships.length !== SHIPS.length) return socket.emit("errorMessage", "Place all 4 ships before confirming.");
+    if (!Array.isArray(ships) || ships.length !== SHIPS.length) return socket.emit("errorMessage", "Place all 5 ships before confirming.");
     const board = emptyBoard(), shipCells = [];
     for (let i = 0; i < SHIPS.length; i++) {
       const cells = ships[i], length = SHIPS[i];

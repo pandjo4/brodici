@@ -5,7 +5,7 @@
   let state = null, myId = null, lobbyCode = null;
   let placedShips = [], selectedShip = 0, vertical = false, hoverCell = null;
   let abilityMode = null, radarOverlays = [], soundOn = true, musicOn = false, audioCtx = null;
-  let musicTimer = null, musicNodes = [];
+  let backgroundAudio = null;
   function ensureAudio() {
     try {
       audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
@@ -14,36 +14,34 @@
     } catch (e) { return null; }
   }
   function startMusic() {
-    const ctx = ensureAudio();
-    if (!ctx || musicTimer) return;
-    musicOn = true;
-    const master = ctx.createGain(); master.gain.value = 0.045; master.connect(ctx.destination);
-    musicNodes.push(master);
-    // A quiet, original synthesized naval ambience; no external audio files required.
-    const notes = [110, 164.81, 146.83, 196, 130.81, 174.61, 146.83, 220];
-    let step = 0;
-    const playNote = () => {
-      if (!musicOn || !audioCtx) return;
-      const now = ctx.currentTime, freq = notes[step++ % notes.length];
-      const osc = ctx.createOscillator(), gain = ctx.createGain(), filter = ctx.createBiquadFilter();
-      osc.type = "sine"; osc.frequency.setValueAtTime(freq, now);
-      filter.type = "lowpass"; filter.frequency.value = 420;
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(0.16, now + 0.8);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 3.6);
-      osc.connect(filter); filter.connect(gain); gain.connect(master);
-      osc.start(now); osc.stop(now + 3.7);
-    };
-    playNote(); musicTimer = setInterval(playNote, 2800);
-    $("musicToggle").textContent = "♫ MUSIC ON";
-    $("musicToggle").classList.add("sound-on");
+    try {
+      if (!backgroundAudio) {
+        backgroundAudio = new Audio("/audio/background.mp3");
+        backgroundAudio.loop = true;
+        backgroundAudio.volume = 0.28;
+        backgroundAudio.preload = "auto";
+        backgroundAudio.addEventListener("error", () => {
+          musicOn = false;
+          $("musicToggle").textContent = "♫ MUSIC OFF";
+          $("musicToggle").classList.remove("sound-on");
+          toast("Music file not found. Add audio/background.mp3 to the project.");
+        });
+      }
+      const playPromise = backgroundAudio.play();
+      if (playPromise && typeof playPromise.catch === "function") {
+        playPromise.catch(() => toast("Could not play music. Check audio/background.mp3 and try again."));
+      }
+      musicOn = true;
+      $("musicToggle").textContent = "♫ MUSIC ON";
+      $("musicToggle").classList.add("sound-on");
+    } catch (e) {
+      musicOn = false;
+      toast("Could not start background music.");
+    }
   }
   function stopMusic() {
     musicOn = false;
-    if (musicTimer) clearInterval(musicTimer);
-    musicTimer = null;
-    musicNodes.forEach(node => { try { node.disconnect(); } catch(e) {} });
-    musicNodes = [];
+    if (backgroundAudio) backgroundAudio.pause();
     $("musicToggle").textContent = "♫ MUSIC OFF";
     $("musicToggle").classList.remove("sound-on");
   }
@@ -53,7 +51,8 @@
     { length: 4, name: "STRIKE CRUISER", desc: "Heavy command ship" },
     { length: 3, name: "SCOUT FRIGATE", desc: "Fast reconnaissance" },
     { length: 3, name: "DEFENSE CUTTER", desc: "Close-range defense" },
-    { length: 3, name: "PATROL VESSEL", desc: "Flexible support craft" }
+    { length: 3, name: "PATROL VESSEL", desc: "Flexible support craft" },
+    { length: 2, name: "COASTAL SKIFF", desc: "Compact fast attacker" }
   ];
   const colLetter = c => String.fromCharCode(65 + c);
   const coord = (r,c) => `${colLetter(c)}${r+1}`;
@@ -132,8 +131,8 @@
     toast(soundOn?"Sound effects enabled.":"Sound effects muted.");
   });
   $("musicToggle").addEventListener("click",()=>{
-    if(musicOn) stopMusic(); else startMusic();
-    toast(musicOn?"Background music enabled.":"Background music muted.");
+    if(musicOn) { stopMusic(); toast("Background music muted."); }
+    else startMusic();
   });
   $("soundToggle").textContent = "🔊 SFX ON"; $("soundToggle").classList.add("sound-on");
   $("rotateBtn").addEventListener("click",()=>{vertical=!vertical;renderPlacement();beep(330,.04)});
@@ -143,7 +142,7 @@
     const last=placedShips.pop();selectedShip=last.defIndex;renderPlacement();beep(260,.07);
   });
   $("readyBtn").addEventListener("click",()=>{
-    if(placedShips.length!==4)return;
+    if(placedShips.length!==shipDefs.length)return;
     socket.emit("placeFleet",{ships:shipDefs.map((def,i)=>placedShips.find(s=>s.defIndex===i).cells)});
     $("readyBtn").disabled=true;$("readyBtn").textContent="FLEET LOCKED ✓";
   });
@@ -177,7 +176,7 @@
       const cell=document.createElement("button");cell.type="button";cell.className="cell";
       const existing=shipAt(placedShips,r,c);
       if(existing>=0){cell.classList.add("ship");cell.textContent="▪";}
-      if(hoverCell&&selectedShip>=0&&placedShips.length<4&&!placedShips.some(s=>s.defIndex===selectedShip)){
+      if(hoverCell&&selectedShip>=0&&placedShips.length<shipDefs.length&&!placedShips.some(s=>s.defIndex===selectedShip)){
         const preview=canPlace(selectedShip,hoverCell.r,hoverCell.c);
         if(preview&&preview.some(p=>p.r===r&&p.c===c))cell.classList.add("preview");
         else if(!preview&&r>=hoverCell.r&&c>=hoverCell.c&&r<hoverCell.r+(vertical?selected.length:1)&&c<hoverCell.c+(vertical?1:selected.length))cell.classList.add("invalid-preview");
@@ -186,7 +185,7 @@
         hoverCell={r,c};
         board.querySelectorAll(".cell").forEach((el,index)=>{
           el.classList.remove("preview","invalid-preview");
-          if(placedShips.length>=4 || placedShips.some(s=>s.defIndex===selectedShip)) return;
+          if(placedShips.length>=shipDefs.length || placedShips.some(s=>s.defIndex===selectedShip)) return;
           const rr=Math.floor(index/10), cc=index%10;
           const preview=canPlace(selectedShip,r,c);
           if(preview && preview.some(p=>p.r===rr&&p.c===cc)) el.classList.add("preview");
@@ -194,22 +193,21 @@
         });
       });
       cell.addEventListener("click",()=>{
-        if(placedShips.length>=4 || placedShips.some(s=>s.defIndex===selectedShip))return;
+        if(placedShips.length>=shipDefs.length || placedShips.some(s=>s.defIndex===selectedShip))return;
         if(placedShips.some(s=>s.cells.some(p=>p.r===r&&p.c===c)))return;
         const cells=canPlace(selectedShip,r,c);
         if(!cells){toast("That ship does not fit there. Try another starting cell.");beep(170,.06,"square");return;}
         placedShips.push({defIndex:selectedShip,cells});
         selectedShip=shipDefs.findIndex((_,i)=>!placedShips.some(s=>s.defIndex===i));
-        if(selectedShip<0)selectedShip=shipDefs.findIndex((_,i)=>!placedShips.some(s=>s.defIndex===i));
         if(selectedShip<0)selectedShip=0;
         hoverCell=null;beep(470,.07);renderPlacement();
       });
       board.appendChild(cell);
     }
-    $("shipCount").textContent=`${placedShips.length} / 4 DEPLOYED`;
-    $("fleetReady").textContent=`${placedShips.length}/4`;
-    $("readyBtn").disabled=placedShips.length!==4;
-    $("readyBtn").innerHTML=placedShips.length===4?'LOCK IN FLEET <b>↗</b>':`DEPLOY ${4-placedShips.length} MORE SHIP${4-placedShips.length===1?"":"S"} <b>↗</b>`;
+    $("shipCount").textContent=`${placedShips.length} / ${shipDefs.length} DEPLOYED`;
+    $("fleetReady").textContent=`${placedShips.length}/${shipDefs.length}`;
+    $("readyBtn").disabled=placedShips.length!==shipDefs.length;
+    $("readyBtn").innerHTML=placedShips.length===shipDefs.length?'LOCK IN FLEET <b>↗</b>':`DEPLOY ${shipDefs.length-placedShips.length} MORE SHIP${shipDefs.length-placedShips.length===1?"":"S"} <b>↗</b>`;
     renderShipList();
   }
   function renderShipList(){
@@ -281,7 +279,7 @@
     }
     $("ownFleetStatus").textContent=`${Math.max(0,4-(state.you.sunk||0))} SHIPS AFLOAT`;
     const health=$("fleetHealth");health.innerHTML="";
-    for(let i=0;i<4;i++){const part=document.createElement("i");part.className="health-ship"+(i<(state.you.sunk||0)?" sunk":"");health.appendChild(part)}
+    for(let i=0;i<shipDefs.length;i++){const part=document.createElement("i");part.className="health-ship"+(i<(state.you.sunk||0)?" sunk":"");health.appendChild(part)}
   }
   function renderLog(){
     const log=$("combatLog");log.innerHTML="";
