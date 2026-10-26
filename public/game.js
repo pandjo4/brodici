@@ -4,7 +4,49 @@
   const lobbyScreen = $("lobbyScreen"), gameScreen = $("gameScreen");
   let state = null, myId = null, lobbyCode = null;
   let placedShips = [], selectedShip = 0, vertical = false, hoverCell = null;
-  let abilityMode = null, radarOverlays = [], soundOn = false, audioCtx = null;
+  let abilityMode = null, radarOverlays = [], soundOn = true, musicOn = false, audioCtx = null;
+  let musicTimer = null, musicNodes = [];
+  function ensureAudio() {
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      return audioCtx;
+    } catch (e) { return null; }
+  }
+  function startMusic() {
+    const ctx = ensureAudio();
+    if (!ctx || musicTimer) return;
+    musicOn = true;
+    const master = ctx.createGain(); master.gain.value = 0.045; master.connect(ctx.destination);
+    musicNodes.push(master);
+    // A quiet, original synthesized naval ambience; no external audio files required.
+    const notes = [110, 164.81, 146.83, 196, 130.81, 174.61, 146.83, 220];
+    let step = 0;
+    const playNote = () => {
+      if (!musicOn || !audioCtx) return;
+      const now = ctx.currentTime, freq = notes[step++ % notes.length];
+      const osc = ctx.createOscillator(), gain = ctx.createGain(), filter = ctx.createBiquadFilter();
+      osc.type = "sine"; osc.frequency.setValueAtTime(freq, now);
+      filter.type = "lowpass"; filter.frequency.value = 420;
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.16, now + 0.8);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 3.6);
+      osc.connect(filter); filter.connect(gain); gain.connect(master);
+      osc.start(now); osc.stop(now + 3.7);
+    };
+    playNote(); musicTimer = setInterval(playNote, 2800);
+    $("musicToggle").textContent = "♫ MUSIC ON";
+    $("musicToggle").classList.add("sound-on");
+  }
+  function stopMusic() {
+    musicOn = false;
+    if (musicTimer) clearInterval(musicTimer);
+    musicTimer = null;
+    musicNodes.forEach(node => { try { node.disconnect(); } catch(e) {} });
+    musicNodes = [];
+    $("musicToggle").textContent = "♫ MUSIC OFF";
+    $("musicToggle").classList.remove("sound-on");
+  }
   let toastTimer = null, rematchRequested = false;
 
   const shipDefs = [
@@ -48,7 +90,13 @@
   socket.on("state",next=>{
     if(!next)return;
     const previousPhase = state?.phase;
+    const previousShots = state?.you?.revealed?.length ?? 0;
+    const oldYouSunk=state?.you?.sunk ?? 0;
     state=next;lobbyCode=next.code;
+    if ((next.you?.sunk ?? 0) > oldYouSunk) { beep(95,.55,"sawtooth",.06); setTimeout(()=>beep(70,.7,"triangle",.05),180); }
+    else if ((next.you?.revealed?.length ?? 0) > previousShots) {
+      const last=(next.you.revealed||[]).at(-1); if(last?.hit) beep(330,.18,"square",.045);
+    }
     if(previousPhase==="finished" && next.phase==="placing"){
       placedShips=[];selectedShip=0;vertical=false;hoverCell=null;
       radarOverlays=[];abilityMode=null;rematchRequested=false;
@@ -79,9 +127,15 @@
   });
   $("soundToggle").addEventListener("click",()=>{
     soundOn=!soundOn;$("soundToggle").classList.toggle("sound-on",soundOn);
-    $("soundToggle").textContent=soundOn?"♫":"♩";if(soundOn)beep(660,.08);
+    $("soundToggle").textContent=soundOn?"🔊 SFX ON":"🔇 SFX OFF";
+    if(soundOn)beep(660,.08);
     toast(soundOn?"Sound effects enabled.":"Sound effects muted.");
   });
+  $("musicToggle").addEventListener("click",()=>{
+    if(musicOn) stopMusic(); else startMusic();
+    toast(musicOn?"Background music enabled.":"Background music muted.");
+  });
+  $("soundToggle").textContent = "🔊 SFX ON"; $("soundToggle").classList.add("sound-on");
   $("rotateBtn").addEventListener("click",()=>{vertical=!vertical;renderPlacement();beep(330,.04)});
   document.addEventListener("keydown",e=>{if(e.key.toLowerCase()==="r"&&!gameScreen.classList.contains("hidden")){vertical=!vertical;renderPlacement()}});
   $("undoShipBtn").addEventListener("click",()=>{
@@ -123,19 +177,30 @@
       const cell=document.createElement("button");cell.type="button";cell.className="cell";
       const existing=shipAt(placedShips,r,c);
       if(existing>=0){cell.classList.add("ship");cell.textContent="▪";}
-      if(hoverCell&&selectedShip>=0&&placedShips.length<4){
+      if(hoverCell&&selectedShip>=0&&placedShips.length<4&&!placedShips.some(s=>s.defIndex===selectedShip)){
         const preview=canPlace(selectedShip,hoverCell.r,hoverCell.c);
         if(preview&&preview.some(p=>p.r===r&&p.c===c))cell.classList.add("preview");
         else if(!preview&&r>=hoverCell.r&&c>=hoverCell.c&&r<hoverCell.r+(vertical?selected.length:1)&&c<hoverCell.c+(vertical?1:selected.length))cell.classList.add("invalid-preview");
       }
-      cell.addEventListener("mouseenter",()=>{hoverCell={r,c};renderPlacement()});
+      cell.addEventListener("pointerenter",()=>{
+        hoverCell={r,c};
+        board.querySelectorAll(".cell").forEach((el,index)=>{
+          el.classList.remove("preview","invalid-preview");
+          if(placedShips.length>=4 || placedShips.some(s=>s.defIndex===selectedShip)) return;
+          const rr=Math.floor(index/10), cc=index%10;
+          const preview=canPlace(selectedShip,r,c);
+          if(preview && preview.some(p=>p.r===rr&&p.c===cc)) el.classList.add("preview");
+          else if(!preview && rr>=r&&cc>=c&&rr<r+(vertical?selected.length:1)&&cc<c+(vertical?1:selected.length)) el.classList.add("invalid-preview");
+        });
+      });
       cell.addEventListener("click",()=>{
+        if(placedShips.length>=4 || placedShips.some(s=>s.defIndex===selectedShip))return;
         if(placedShips.some(s=>s.cells.some(p=>p.r===r&&p.c===c)))return;
         const cells=canPlace(selectedShip,r,c);
         if(!cells){toast("That ship does not fit there. Try another starting cell.");beep(170,.06,"square");return;}
         placedShips.push({defIndex:selectedShip,cells});
         selectedShip=shipDefs.findIndex((_,i)=>!placedShips.some(s=>s.defIndex===i));
-        if(selectedShip<0)selectedShip=0;
+        if(selectedShip<0)selectedShip=shipDefs.findIndex((_,i)=>!placedShips.some(s=>s.defIndex===i));\n        if(selectedShip<0)selectedShip=0;
         hoverCell=null;beep(470,.07);renderPlacement();
       });
       board.appendChild(cell);
@@ -156,7 +221,7 @@
       for(let k=0;k<def.length;k++){const part=document.createElement("i");mini.appendChild(part)}
       const meta=document.createElement("span");meta.className="ship-meta";meta.innerHTML=`<b>${def.name}</b><small>${def.length} CELLS · ${def.desc}</small>`;
       const status=document.createElement("span");status.className="ship-status";status.textContent=placed?"✓":"＋";
-      btn.append(mini,meta,status);btn.addEventListener("click",()=>{selectedShip=i;renderPlacement()});list.appendChild(btn);
+      btn.append(mini,meta,status);btn.addEventListener("click",()=>{if(!placed){selectedShip=i;hoverCell=null;renderPlacement()}});list.appendChild(btn);
     });
   }
   function renderBoardAxes(board,clickHandler,mode){

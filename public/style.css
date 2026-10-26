@@ -3,3 +3,21 @@
 @media(min-width:1100px){.board-card{padding:20px 24px}.boards-layout{gap:24px}.board{gap:3px;padding:7px}.cell{font-size:15px}}
 @media(max-width:760px){main{padding:0 13px}.topbar{height:62px;padding:0 15px}.brand{font-size:20px}.brand-mark{width:32px;height:32px}.top-right{font-size:8px;letter-spacing:.8px}.hero{padding:45px 0 23px}.hero h1{font-size:56px}.hero-stats{gap:19px}.lobby-card{padding:22px 19px 16px}.how-grid{gap:12px;padding:30px 0}.how-grid>div{padding-left:0;padding-top:38px}.how-grid b{font-size:9px}.how-grid p{font-size:10px}.game-screen{padding-top:23px}.game-heading h1{font-size:38px}.copy-btn{padding:9px;font-size:9px;gap:6px}.copy-btn span{display:none}.placement-panel{padding:15px}.deploy-layout{grid-template-columns:1fr;gap:14px}.fleet-panel{padding:13px}.ship-list{grid-template-columns:1fr 1fr}.ship-option{padding:8px;gap:7px}.ship-mini i{width:7px;height:13px}.ship-meta b{font-size:9px}.placement-controls{margin-top:9px}.hint{margin:9px 0}.battle-status{padding:11px;gap:8px;grid-template-columns:1fr auto}.turn-clock{grid-column:2;grid-row:1}.energy-box{grid-column:1 / -1;justify-self:stretch;border-top:1px solid #203b4d;padding-top:9px}.energy-box>span{font-size:20px}.energy-pips{margin-top:4px}.boards-layout{grid-template-columns:1fr;gap:13px}.board-card{padding:13px}.board-card-head{margin-bottom:11px}.board-card-head h2{font-size:22px}.board{gap:2px;padding:4px}.cell{font-size:clamp(10px,3vw,16px)}.ability-grid{grid-template-columns:1fr;gap:7px}.ability-card{padding:10px}.ability-art{width:36px;height:36px}.ability-copy em{font-size:9px}.ability-cost{min-width:48px}.intel-layout{grid-template-columns:1fr}.combat-log{height:130px}.game-heading{align-items:flex-start}.game-heading h1{font-size:34px}.game-heading p{max-width:270px;line-height:1.5}.lobby-foot{font-size:7px;letter-spacing:.5px}.timer-pill{padding:6px}.timer-pill span{display:none}}
 @media(max-width:390px){.hero h1{font-size:48px}.hero-stats{gap:12px}.hero-stats strong{font-size:17px}.lobby-foot{flex-wrap:wrap}.game-heading h1{font-size:29px}.copy-btn{flex-direction:column;gap:3px}.ship-list{grid-template-columns:1fr}.board-card-head h2{font-size:20px}}
+
+/* Audio controls and reliable touch-friendly ship placement */
+.top-right{flex-wrap:wrap}
+.audio-toggle{width:auto;min-width:78px;padding:0 10px;font-size:10px;letter-spacing:.2px;white-space:nowrap}
+.audio-toggle.sound-on{color:var(--cyan);border-color:#287b7a;background:#0c3037}
+.placement-board{touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.placement-board .cell{touch-action:manipulation;position:relative}
+.placement-board .cell.preview{background:rgba(72,224,208,.35)!important;border-color:var(--cyan)!important;box-shadow:inset 0 0 0 1px var(--cyan)}
+.placement-board .cell.invalid-preview{background:rgba(255,107,114,.25)!important;border-color:var(--red)!important}
+.ship-option{touch-action:manipulation}
+@media(max-width:600px){
+ .topbar{padding:0 12px;gap:8px}.top-right{gap:5px;justify-content:flex-end}
+ .top-right #connectionLabel{display:none}
+ .audio-toggle{font-size:9px;min-width:0;padding:0 7px;height:32px}
+ .deploy-layout{grid-template-columns:minmax(0,1fr)}
+ .fleet-panel{width:100%}
+ .placement-board{width:100%;max-width:min(88vw,420px);margin-inline:auto}
+}
