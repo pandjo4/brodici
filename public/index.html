@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#071421">
+  <title>DEPTH CHARGE — Naval Duel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
+  <header class="topbar">
+    <a class="brand" href="#"><span class="brand-mark">✦</span><span>DEPTH<span class="brand-accent">CHARGE</span><small>NAVAL TACTICS DIVISION</small></span></a>
+    <div class="top-right"><span class="live-dot"></span><span id="connectionLabel">CONNECTING</span><button id="soundToggle" class="icon-btn" title="Toggle sound" aria-label="Toggle sound">♫</button></div>
+  </header>
+
+  <main>
+    <section id="lobbyScreen" class="screen lobby-screen">
+      <div class="hero">
+        <div class="eyebrow"><span class="eyebrow-line"></span>TACTICAL NAVAL COMBAT<span class="eyebrow-line"></span></div>
+        <h1>OUTSMART.<br><span>OUTMANEUVER.</span></h1>
+        <p class="hero-copy">A quiet ocean. Two fleets. One captain goes down.</p>
+        <div class="hero-stats"><div><strong>10×10</strong><span>GRID</span></div><i></i><div><strong>2</strong><span>CAPTAINS</span></div><i></i><div><strong>25 SEC</strong><span>PER TURN</span></div></div>
+      </div>
+      <div class="lobby-card">
+        <div class="card-top"><div><span class="section-kicker">ESTABLISH CONNECTION</span><h2>Enter the war room</h2></div><span class="signal-icon">⌁</span></div>
+        <label for="playerName">CALLSIGN</label><input id="playerName" maxlength="18" placeholder="e.g. Admiral Nova" autocomplete="nickname">
+        <button id="createBtn" class="primary-btn"><span>＋</span> CREATE LOBBY <b>↗</b></button>
+        <div class="or-divider"><span></span> OR JOIN YOUR CREW <span></span></div>
+        <div class="join-row"><input id="roomCode" maxlength="6" placeholder="LOBBY CODE" autocomplete="off"><button id="joinBtn" class="secondary-btn">JOIN <span>→</span></button></div>
+        <p id="lobbyError" class="error-text" role="status"></p>
+        <div class="lobby-foot"><span>◈ PRIVATE MATCH</span><span>◉ 2 PLAYER ONLINE</span><span>⌁ REAL-TIME</span></div>
+      </div>
+      <div class="how-grid">
+        <div><span class="how-icon">▦</span><b>DEPLOY YOUR FLEET</b><p>Place four ships. Keep your formation hidden.</p></div>
+        <div><span class="how-icon">◎</span><b>MANAGE ENERGY</b><p>Every turn gives you energy for tactical abilities.</p></div>
+        <div><span class="how-icon">⌖</span><b>READ THE OCEAN</b><p>Radar, barrages, and smart shots decide the duel.</p></div>
+      </div>
+    </section>
+
+    <section id="gameScreen" class="screen game-screen hidden">
+      <div class="game-heading">
+        <div><div class="eyebrow left-eyebrow"><span class="live-dot"></span> PRIVATE MATCH <span class="heading-sep">/</span> LOBBY <strong id="gameRoomCode">------</strong></div><h1 id="phaseTitle">DEPLOY YOUR FLEET</h1><p id="phaseSubtitle">Place all four ships on your ocean grid.</p></div>
+        <button id="copyCodeBtn" class="copy-btn">▣ <span>INVITE</span> <strong id="inviteCode">------</strong></button>
+      </div>
+      <div id="waitingBanner" class="waiting-banner"><span class="spinner"></span><div><b>WAITING FOR ANOTHER CAPTAIN</b><small>Share your lobby code to bring an opponent into the war room.</small></div></div>
+      <div id="placementPanel" class="placement-panel">
+        <div class="panel-title"><div><span class="section-kicker">PHASE 01 / DEPLOYMENT</span><h2>Position your fleet</h2></div><div class="timer-pill"><span>TIME LEFT</span><b id="placementTimer">60</b><small>SEC</small></div></div>
+        <div class="deploy-layout">
+          <div class="board-wrap own-wrap"><div class="board-caption"><span><i class="tiny-dot"></i> YOUR OCEAN</span><span id="shipCount">0 / 4 DEPLOYED</span></div><div id="ownBoard" class="board placement-board" aria-label="Your ship placement board"></div></div>
+          <aside class="fleet-panel">
+            <div class="fleet-title">FLEET MANIFEST <span id="fleetReady" class="manifest-count">0/4</span></div>
+            <div id="shipList" class="ship-list"></div>
+            <div class="placement-controls"><button id="rotateBtn" class="secondary-btn">↻ ROTATE <small>R</small></button><button id="undoShipBtn" class="ghost-btn">UNDO LAST</button></div>
+            <p class="hint">Select a ship, then tap a starting cell. Ships can be placed horizontally or vertically. No overlap allowed.</p>
+            <button id="readyBtn" class="primary-btn" disabled>LOCK IN FLEET <b>↗</b></button>
+          </aside>
+        </div>
+      </div>
+
+      <div id="battlePanel" class="battle-panel hidden">
+        <div class="battle-status">
+          <div class="turn-info"><span class="turn-symbol">⌖</span><div><small id="turnEyebrow">YOUR TURN</small><b id="turnTitle">Choose a target</b><span id="turnDesc">Select an enemy cell to fire.</span></div></div>
+          <div class="turn-clock"><div class="clock-ring"><span id="turnTimer">25</span></div><small>SECONDS</small></div>
+          <div class="energy-box"><span>⚡</span><div><small>YOUR ENERGY</small><b id="energyValue">1 <i>/ 10</i></b><div id="energyPips" class="energy-pips"></div></div></div>
+        </div>
+        <div class="boards-layout">
+          <div class="board-card enemy-card"><div class="board-card-head"><div><span class="section-kicker">TARGET ZONE</span><h2>Enemy waters</h2></div><span class="status-tag hostile">HOSTILE</span></div><div class="board-caption"><span><i class="tiny-dot red-dot"></i> ENEMY GRID</span><span id="enemyShotCount">0 SHOTS</span></div><div id="enemyBoard" class="board enemy-board" aria-label="Enemy target board"></div><div class="board-legend"><span><i class="legend-dot hit"></i> HIT</span><span><i class="legend-dot miss"></i> MISS</span><span><i class="legend-dot radar"></i> RADAR</span></div></div>
+          <div class="board-card own-card"><div class="board-card-head"><div><span class="section-kicker">FRIENDLY ZONE</span><h2>Your fleet</h2></div><span class="status-tag friendly">FRIENDLY</span></div><div class="board-caption"><span><i class="tiny-dot"></i> YOUR GRID</span><span id="ownFleetStatus">4 SHIPS AFLOAT</span></div><div id="battleOwnBoard" class="board own-battle-board" aria-label="Your fleet board"></div><div class="fleet-health" id="fleetHealth"></div></div>
+        </div>
+        <div class="tactics-section"><div class="tactics-heading"><div><span class="section-kicker">TACTICAL SYSTEMS</span><h2>Special abilities</h2></div><span class="tactics-note">Energy refills +1 each turn</span></div>
+          <div class="ability-grid">
+            <button class="ability-card" data-ability="radar"><span class="ability-art radar-art">⌕</span><span class="ability-copy"><b>RADAR PULSE</b><small>Scan a 3×3 area</small><em>Reveals ship-cell count</em></span><span class="ability-cost"><b>2</b><small>ENERGY</small></span></button>
+            <button class="ability-card" data-ability="row"><span class="ability-art row-art">↔</span><span class="ability-copy"><b>ROW BARRAGE</b><small>Fire across 1 row</small><em>Up to 10 targets</em></span><span class="ability-cost"><b>5</b><small>ENERGY</small></span></button>
+            <button class="ability-card" data-ability="column"><span class="ability-art col-art">↕</span><span class="ability-copy"><b>COLUMN BARRAGE</b><small>Fire down 1 column</small><em>Up to 10 targets</em></span><span class="ability-cost"><b>5</b><small>ENERGY</small></span></button>
+          </div>
+          <div id="abilityPrompt" class="ability-prompt hidden"><span id="abilityPromptText">Select a target zone.</span><button id="cancelAbilityBtn" class="ghost-btn">CANCEL</button></div>
+        </div>
+        <div class="intel-layout"><div class="intel-card"><div class="intel-heading"><span>◉</span><b>COMBAT LOG</b><small>LIVE FEED</small></div><div id="combatLog" class="combat-log"><p class="empty-log">Waiting for first contact...</p></div></div><div class="rules-card"><span class="section-kicker">FIELD MANUAL</span><h3>Win the war, not the turn.</h3><p>Every normal shot ends your turn. Radar and barrages also consume your action. Energy carries over, so decide when a big strike is worth the wait.</p><div class="rule-line"><span>01</span> Find patterns in missed shots.<div></div></div><div class="rule-line"><span>02</span> Save energy for high-value barrages.<div></div></div><div class="rule-line"><span>03</span> Sink every enemy ship to win.<div></div></div></div></div>
+      </div>
+      <div id="resultOverlay" class="result-overlay hidden"><div class="result-card"><span id="resultIcon" class="result-icon">✦</span><span class="section-kicker">MISSION REPORT</span><h2 id="resultTitle">VICTORY</h2><p id="resultText">The ocean is yours.</p><button id="rematchBtn" class="primary-btn">REQUEST REMATCH <b>↻</b></button><button id="backLobbyBtn" class="ghost-btn">BACK TO LOBBY</button></div></div>
+    </section>
+  </main>
+  <footer><span>DEPTH CHARGE <i>©</i> 2026</span><span>STRATEGY OVER FIREPOWER</span><span>BUILT FOR TWO CAPTAINS <b>✦</b></span></footer>
+  <div id="toast" class="toast hidden"></div>
+  <script src="/socket.io/socket.io.js"></script><script src="/game.js"></script>
+</body>
+</html>
